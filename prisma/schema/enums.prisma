@@ -4,12 +4,6 @@ enum Role {
   ADMIN
 }
 
-enum UserStatus {
-    ACTIVE
-    BLOCKED
-    DELETED
-}
-
 enum EventStatus {
   OPEN
   FULL
@@ -18,6 +12,7 @@ enum EventStatus {
 }
 
 enum PaymentStatus {
+  FREE
   PENDING
   PAID
   FAILED

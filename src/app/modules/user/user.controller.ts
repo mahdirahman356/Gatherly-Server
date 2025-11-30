@@ -25,7 +25,7 @@ const myProfile = catchAsync(async (req: Request & { user?: IJWTPayload }, res: 
     sendResponse(res, {
         statusCode: httpStatus.OK,
         success: true,
-        message: "My profile updated!",
+        message: "My profile data fetched!",
         data: result
     })
 });

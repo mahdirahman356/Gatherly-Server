@@ -89,8 +89,8 @@ const updateProfile = async (user: IJWTPayload, req: Request) => {
         },
         update: req.body,
         create: {
-            ...req.body,
             userId: userInfo.id,
+            ...req.body,
         },
     });
 

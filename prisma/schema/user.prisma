@@ -8,4 +8,5 @@ model User {
   updatedAt DateTime @updatedAt
 
   profile   Profile?
+  events Event[] @relation("HostEvents")
 }
