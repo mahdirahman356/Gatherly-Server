@@ -5,9 +5,9 @@ dotenv.config({ path: path.join(process.cwd(), '.env') });
 
 export default {
     node_env: process.env.NODE_ENV,
-    port: Number(process.env.PORT) || 5000,  
+    port: Number(process.env.PORT) || 5000,
     database_url: process.env.DATABASE_URL,
-     bcrypt: {
+    bcrypt: {
         salt_round: process.env.BCRYPT_SALT_ROUND
     },
     jwt: {
@@ -19,4 +19,6 @@ export default {
         api_key: process.env.CLOUDINARY_API_KEY,
         api_secret: process.env.CLOUDINARY_API_SECRET
     },
+    stripe_secret_key: process.env.STRIPE_SECRET_KEY,
+    webhook_secret_key: process.env.WEBHOOK_SECRET,
 }

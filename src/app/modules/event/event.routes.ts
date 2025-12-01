@@ -34,6 +34,12 @@ router.get(
     EventController.getAllEvents
 )
 
+router.post(
+    "/:id/join",
+    auth(UserRole.USER),
+    EventController.joinEvent
+)
+
 router.delete(
     "/:id",
     auth(UserRole.HOST),

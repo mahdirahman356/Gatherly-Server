@@ -3,6 +3,10 @@ import { IJWTPayload } from "../../types/common";
 import { prisma } from "../../lib/prisma";
 import { fileUploader } from "../../helper/fileUploader";
 import { buildEventSearchQuery, EventSearchParams } from "./event.utils";
+import ApiError from "../../errors/ApiError";
+import { createStripeCheckoutSession } from "../../utils/stripePayment";
+import { v4 as uuidv4 } from 'uuid';
+import { PaymentStatus } from "@prisma/client";
 
 const createEvent = async (user: IJWTPayload, req: Request) => {
 
@@ -140,12 +144,112 @@ const getAllEvents = async (query: EventSearchParams) => {
                     email: true,
                 },
             },
-            reviews: true,
+            reviews: true
         },
     });
 
     return events;
 }
+
+const joinEvent = async (user: IJWTPayload, req: Request) => {
+    const eventId = req.params.id
+    const userInfo = await prisma.user.findUniqueOrThrow({
+        where: {
+            email: user.email,
+        },
+    });
+    const userId = userInfo.id
+
+    const event = await prisma.event.findUnique({
+        where: { id: eventId },
+    });
+
+    if (!event) {
+        throw new ApiError(404, "Event not found");
+    }
+
+    if (event.status !== "OPEN") {
+        throw new ApiError(400, "This event is not open for joining");
+    }
+
+    const alreadyJoined = await prisma.participant.findUnique({
+        where: {
+            userId_eventId: {
+                userId,
+                eventId,
+            },
+        },
+    });
+
+    if (alreadyJoined) {
+        throw new ApiError(400, "You already joined this event");
+    }
+
+    const totalParticipants = await prisma.participant.count({
+        where: { eventId },
+    });
+
+    if (
+        event.maxParticipants &&
+        totalParticipants >= event.maxParticipants
+    ) {
+        throw new ApiError(400, "Event is already full");
+    }
+
+    if (event.joiningFee && event.joiningFee > 0) {
+
+        const existingPayment = await prisma.payment.findFirst({
+            where: {
+                userId,
+                eventId,
+                status: PaymentStatus.PENDING
+            }
+        });
+
+        if (existingPayment) {
+            throw new ApiError(400, "Payment already initiated for this event");
+        }
+
+        const transactionId = uuidv4();
+        const paymentData = await prisma.payment.create({
+            data: {
+                eventId: event.id,
+                userId: userId,
+                hostId: event.hostId,
+                amount: event.joiningFee,
+                transactionId
+            }
+        })
+        const session = await createStripeCheckoutSession({
+            amount: event.joiningFee,
+            paymentId: paymentData.id,
+            eventTitle: event.title,
+            userId,
+            eventId,
+            successUrl: "http://localhost:3000/payment-success",
+            cancelUrl: "http://localhost:3000/payment-cancel",
+        });
+
+        return {
+            paymentUrl: session.url,
+        };
+
+    }
+
+    const participant = await prisma.participant.create({
+        data: {
+            userId,
+            eventId,
+            paymentStatus: "FREE",
+        },
+        include: {
+            user: true,
+            event: true,
+        },
+    });
+
+    return participant;
+};
 
 const deleteEvent = async (user: IJWTPayload, req: Request) => {
     const { id } = req.params;
@@ -167,9 +271,9 @@ const deleteEvent = async (user: IJWTPayload, req: Request) => {
         throw new Error("Completed events cannot be deleted");
     }
 
-    // await prisma.participant.deleteMany({
-    //     where: { eventId: id },
-    // });
+    await prisma.participant.deleteMany({
+        where: { eventId: id },
+    });
 
     const deletedEvent = await prisma.event.delete({
         where: { id },
@@ -183,5 +287,6 @@ export const EventService = {
     createEvent,
     updateEvent,
     getAllEvents,
+    joinEvent,
     deleteEvent
 }

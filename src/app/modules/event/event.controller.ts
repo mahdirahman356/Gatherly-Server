@@ -44,6 +44,18 @@ const getAllEvents = catchAsync(async (req: Request, res: Response) => {
     })
 })
 
+const joinEvent = catchAsync(async (req: Request & { user?: IJWTPayload }, res: Response) => {
+
+    const user = req.user;
+    const result = await EventService.joinEvent(user as IJWTPayload, req)
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Successfully joined the event",
+        data: result
+    })
+})
+
 
 const deleteEvent = catchAsync(async (req: Request & { user?: IJWTPayload }, res: Response) => {
 
@@ -63,5 +75,6 @@ export const EventController = {
     createEvent,
     updateEvent,
     getAllEvents,
+    joinEvent,
     deleteEvent
 }

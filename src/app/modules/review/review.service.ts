@@ -10,20 +10,20 @@ const addReview = async (user: IJWTPayload, payload: any) => {
 
     const event = await prisma.event.findUniqueOrThrow({
         where: { id: eventId },
-        // include: { participants: true },
+        include: { participants: true },
     });
 
     if (event.status !== "COMPLETED") {
         throw new Error("You can only review events that have been completed");
     }
 
-    // const hasJoined = event.participants.some(
-    //     (p) => p.userId === userInfo.id
-    // );
+    const hasJoined = event.participants.some(
+        (p) => p.userId === userInfo.id
+    );
 
-    // if (!hasJoined) {
-    //     throw new Error("You can only review events you have joined");
-    // }
+    if (!hasJoined) {
+        throw new Error("You can only review events you have joined");
+    }
 
 
     const review = await prisma.review.create({

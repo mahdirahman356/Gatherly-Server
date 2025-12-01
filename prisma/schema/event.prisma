@@ -19,7 +19,45 @@ model Event {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  reviews Review[]
+  reviews      Review[]
+  participants Participant[]
+
+  payments Payment[]
+}
+
+model Participant {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id])
+
+  paymentStatus PaymentStatus @default(FREE)
+  joinedAt      DateTime      @default(now())
+
+  @@unique([userId, eventId])
+}
+
+model Payment {
+  id String @id @default(uuid())
+
+  amount        Float
+  transactionId String        @unique
+
+  status        PaymentStatus @default(PENDING)
+
+  userId String
+  user   User   @relation("UserPayments", fields: [userId], references: [id])
+
+  hostId String
+  host   User   @relation("HostPayments", fields: [hostId], references: [id])
+
+  eventId String
+  event   Event  @relation(fields: [eventId], references: [id])
+
+  createdAt DateTime @default(now())
 }
 
 model Review {
