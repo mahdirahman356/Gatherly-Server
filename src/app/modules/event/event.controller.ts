@@ -31,6 +31,20 @@ const updateEvent = catchAsync(async (req: Request & { user?: IJWTPayload }, res
     })
 })
 
+const getAllEvents = catchAsync(async (req: Request & {user?: IJWTPayload}, res: Response) => {
+
+    const user = req.user
+    const result = await EventService.getAllEvents(user as IJWTPayload);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "All event fetched successfully!",
+        data: result
+    })
+})
+
+
 const deleteEvent = catchAsync(async (req: Request & { user?: IJWTPayload }, res: Response) => {
 
     const user = req.user;
@@ -48,5 +62,6 @@ const deleteEvent = catchAsync(async (req: Request & { user?: IJWTPayload }, res
 export const EventController = {
     createEvent,
     updateEvent,
+    getAllEvents,
     deleteEvent
 }

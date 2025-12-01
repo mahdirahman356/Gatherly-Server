@@ -122,8 +122,12 @@ const updateEvent = async (user: IJWTPayload, req: Request) => {
 
 };
 
+const getAllEvents = async (user: IJWTPayload) => {
+    return {}
+}
+
 const deleteEvent = async (user: IJWTPayload, req: Request) => {
-    const { id } = req.params; 
+    const { id } = req.params;
 
     const userInfo = await prisma.user.findUniqueOrThrow({
         where: { email: user.email },
@@ -133,7 +137,7 @@ const deleteEvent = async (user: IJWTPayload, req: Request) => {
         where: { id },
     });
 
- 
+
     if (existingEvent.hostId !== userInfo.id) {
         throw new Error("You are not allowed to delete this event");
     }
@@ -157,5 +161,6 @@ const deleteEvent = async (user: IJWTPayload, req: Request) => {
 export const EventService = {
     createEvent,
     updateEvent,
+    getAllEvents,
     deleteEvent
 }
