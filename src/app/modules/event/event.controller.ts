@@ -31,10 +31,10 @@ const updateEvent = catchAsync(async (req: Request & { user?: IJWTPayload }, res
     })
 })
 
-const getAllEvents = catchAsync(async (req: Request & {user?: IJWTPayload}, res: Response) => {
+const getAllEvents = catchAsync(async (req: Request, res: Response) => {
 
-    const user = req.user
-    const result = await EventService.getAllEvents(user as IJWTPayload);
+    const filters = req.query;
+    const result = await EventService.getAllEvents(filters);
 
     sendResponse(res, {
         statusCode: 200,

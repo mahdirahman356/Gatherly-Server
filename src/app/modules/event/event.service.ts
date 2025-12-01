@@ -2,6 +2,7 @@ import { Request } from "express";
 import { IJWTPayload } from "../../types/common";
 import { prisma } from "../../lib/prisma";
 import { fileUploader } from "../../helper/fileUploader";
+import { buildEventSearchQuery, EventSearchParams } from "./event.utils";
 
 const createEvent = async (user: IJWTPayload, req: Request) => {
 
@@ -122,8 +123,28 @@ const updateEvent = async (user: IJWTPayload, req: Request) => {
 
 };
 
-const getAllEvents = async (user: IJWTPayload) => {
-    return {}
+const getAllEvents = async (query: EventSearchParams) => {
+    const where = buildEventSearchQuery(query);
+
+    console.log(query)
+
+    const events = await prisma.event.findMany({
+        where,
+        orderBy: {
+            date: "asc",
+        },
+        include: {
+            host: {
+                select: {
+                    id: true,
+                    email: true,
+                },
+            },
+            reviews: true,
+        },
+    });
+
+    return events;
 }
 
 const deleteEvent = async (user: IJWTPayload, req: Request) => {

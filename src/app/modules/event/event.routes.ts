@@ -31,7 +31,6 @@ router.patch(
 
 router.get(
     "/",
-    auth(UserRole.ADMIN, UserRole.HOST, UserRole.USER),
     EventController.getAllEvents
 )
 
