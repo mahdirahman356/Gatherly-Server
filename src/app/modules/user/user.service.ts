@@ -64,6 +64,27 @@ const myProfile = async (user: IJWTPayload) => {
 
 };
 
+const getAllUsers = async (role: UserRole) => {
+
+    const result = await prisma.user.findMany({
+        where: role ? { role } : undefined,
+        orderBy: {
+            createdAt: "desc",
+        },
+        select: {
+            id: true,
+            email: true,
+            role: true,
+            createdAt: true,
+            profile: true,
+            events: true
+        },
+    });
+
+    return result;
+
+};
+
 const updateProfile = async (user: IJWTPayload, req: Request) => {
 
     const userInfo = await prisma.user.findUniqueOrThrow({
@@ -101,5 +122,6 @@ const updateProfile = async (user: IJWTPayload, req: Request) => {
 export const UserService = {
     createUser,
     myProfile,
+    getAllUsers,
     updateProfile
 }

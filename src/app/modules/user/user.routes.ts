@@ -16,8 +16,14 @@ router.post(
 
 router.get(
     "/my-profile",
-    auth(UserRole.USER),
+    auth(UserRole.USER, UserRole.HOST, UserRole.ADMIN),
     UserController.myProfile
+);
+
+router.get(
+    "/",
+    auth(UserRole.ADMIN),
+    UserController.getAllUsers
 );
 
 router.patch(
@@ -31,5 +37,7 @@ router.patch(
         return UserController.updateProfile(req, res, next)
     }
 );
+
+
 
 export const UserRoutes = router;
