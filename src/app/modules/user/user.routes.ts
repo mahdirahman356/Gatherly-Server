@@ -26,6 +26,11 @@ router.get(
     UserController.getAllUsers
 );
 
+router.get(
+    "/:id",
+    UserController.getSingleUser
+);
+
 router.patch(
     "/update-profile",
     auth(UserRole.USER),
@@ -37,6 +42,26 @@ router.patch(
         return UserController.updateProfile(req, res, next)
     }
 );
+
+router.patch(
+    "/status/:id",
+    auth(UserRole.ADMIN),
+    UserController.changeUserStatus
+);
+
+router.patch(
+    "/change-role/:id",
+    auth(UserRole.ADMIN),
+    UserController.changeUserRole
+);
+
+router.delete(
+    "/:id",
+    auth(UserRole.ADMIN),
+    UserController.deleteUser
+);
+
+
 
 
 

@@ -5,6 +5,8 @@ import config from "../../../config";
 import { prisma } from "../../lib/prisma";
 import { IJWTPayload } from "../../types/common";
 import { fileUploader } from "../../helper/fileUploader";
+import ApiError from "../../errors/ApiError";
+import { UserStatus } from "@prisma/client";
 
 const createUser = async (req: Request) => {
 
@@ -66,10 +68,46 @@ const myProfile = async (user: IJWTPayload) => {
 
 const getAllUsers = async (role: UserRole) => {
 
-    const result = await prisma.user.findMany({
+    const users = await prisma.user.findMany({
         where: role ? { role } : undefined,
         orderBy: {
             createdAt: "desc",
+        },
+        select: {
+            id: true,
+            email: true,
+            role: true,
+            status: true,
+            createdAt: true,
+            profile: true,
+
+            _count: {
+                select: {
+                    events: true,
+                },
+            },
+
+            events: true, // frontend এ condition দিয়ে দেখাবে
+        },
+    });
+
+    const result = users.map(({ _count, role, events, ...user }) => ({
+        ...user,
+        role,
+        ...(role === "HOST" && {
+            events,
+            eventsCount: _count.events,
+        }),
+    }));
+
+    return result;
+
+};
+
+const getSingleUser = async (userId: string) => {
+    const result = await prisma.user.findUnique({
+        where: {
+            id: userId,
         },
         select: {
             id: true,
@@ -81,8 +119,11 @@ const getAllUsers = async (role: UserRole) => {
         },
     });
 
-    return result;
+    if (!result || result.role === "ADMIN") {
+        throw new Error("User not found");
+    }
 
+    return result;
 };
 
 const updateProfile = async (user: IJWTPayload, req: Request) => {
@@ -118,10 +159,56 @@ const updateProfile = async (user: IJWTPayload, req: Request) => {
     return profileInfo;
 };
 
+const changeUserStatus = async (userId: string, status: UserStatus) => {
+
+    const result = await prisma.user.update({
+        where: {
+            id: userId
+        },
+        data: {
+            status: status
+        },
+    })
+
+    return result
+
+};
+
+const changeUserRole = async (userId: string, role: UserRole) => {
+
+    const result = await prisma.user.update({
+        where: {
+            id: userId
+        },
+        data: {
+            role: role
+        },
+    })
+
+    return result
+
+};
+
+const deleteUser = async (userId: string) => {
+
+    const result = await prisma.user.delete({
+        where: {
+            id: userId
+        }
+    })
+
+    return result
+
+};
+
 
 export const UserService = {
     createUser,
     myProfile,
     getAllUsers,
-    updateProfile
+    getSingleUser,
+    updateProfile,
+    changeUserStatus,
+    changeUserRole,
+    deleteUser
 }

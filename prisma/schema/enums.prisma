@@ -4,6 +4,12 @@ enum Role {
   ADMIN
 }
 
+enum UserStatus {
+    ACTIVE
+    INACTIVE
+    BLOCKED
+}
+
 enum EventStatus {
   OPEN
   FULL
