@@ -4,6 +4,7 @@ import sendResponse from "../../shared/sendResponse"
 import httpStatus from "http-status";
 import { EventService } from "./event.service";
 import { IJWTPayload } from "../../types/common";
+import { EventStatus } from "@prisma/client";
 
 
 const createEvent = catchAsync(async (req: Request & { user?: IJWTPayload }, res: Response) => {
@@ -27,6 +28,21 @@ const updateEvent = catchAsync(async (req: Request & { user?: IJWTPayload }, res
         statusCode: httpStatus.OK,
         success: true,
         message: "Event updated successfully",
+        data: result
+    })
+})
+
+const changeStatus = catchAsync(async (req: Request & { user?: IJWTPayload }, res: Response) => {
+
+    const eventId = req.params.id
+    const { status } = req.body
+    const user = req.user
+    const result = await EventService.changeStatus(user as IJWTPayload, eventId as string, status as EventStatus)
+
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Event status updated successfully",
         data: result
     })
 })
@@ -74,6 +90,7 @@ const deleteEvent = catchAsync(async (req: Request & { user?: IJWTPayload }, res
 export const EventController = {
     createEvent,
     updateEvent,
+    changeStatus,
     getAllEvents,
     joinEvent,
     deleteEvent

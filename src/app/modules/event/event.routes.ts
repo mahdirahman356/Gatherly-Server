@@ -29,6 +29,12 @@ router.patch(
     }
 )
 
+router.patch(
+    "/status/:id",
+     auth(UserRole.HOST, UserRole.ADMIN),
+    EventController.changeStatus
+)
+
 router.get(
     "/",
     EventController.getAllEvents
@@ -42,7 +48,7 @@ router.post(
 
 router.delete(
     "/:id",
-    auth(UserRole.HOST),
+    auth(UserRole.HOST, UserRole.ADMIN),
     EventController.deleteEvent
 )
 

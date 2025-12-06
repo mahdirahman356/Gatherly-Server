@@ -1,9 +1,5 @@
 import express, { Application, NextFunction, Request, Response } from 'express';
 import cors from 'cors';
-// import globalErrorHandler from './app/middlewares/globalErrorHandler';
-// import notFound from './app/middlewares/notFound';
-import { uptime } from 'process';
-import { timeStamp } from 'console';
 import globalErrorHandler from './app/middlewares/globalErrorHandler';
 import notFound from './app/middlewares/notFound';
 import config from './config';

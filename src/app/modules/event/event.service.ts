@@ -6,7 +6,8 @@ import { buildEventSearchQuery, EventSearchParams } from "./event.utils";
 import ApiError from "../../errors/ApiError";
 import { createStripeCheckoutSession } from "../../utils/stripePayment";
 import { v4 as uuidv4 } from 'uuid';
-import { PaymentStatus } from "@prisma/client";
+import { EventStatus, PaymentStatus } from "@prisma/client";
+import { UserRole } from "../user/user.interface";
 
 const createEvent = async (user: IJWTPayload, req: Request) => {
 
@@ -127,6 +128,40 @@ const updateEvent = async (user: IJWTPayload, req: Request) => {
 
 };
 
+const changeStatus = async (user: IJWTPayload, eventId: string, status: EventStatus) => {
+    const userInfo = await prisma.user.findUniqueOrThrow({
+        where: { email: user.email },
+    }); 
+
+    const existingEvent = await prisma.event.findUnique({
+        where: { id: eventId },
+    });
+
+    if (!existingEvent) {
+        throw new Error("Event not found");
+    }
+
+    if (existingEvent.hostId !== userInfo.id &&
+        userInfo.role !== UserRole.ADMIN) {
+        throw new Error("You are not allowed to update this event status");
+    }
+
+    if (existingEvent.status === EventStatus.COMPLETED) {
+        throw new Error("Completed event status cannot be changed");
+    }
+
+    const result = await prisma.event.update({
+        where: { id: eventId },
+        data: {
+            status,
+        },
+    });
+
+    return result;
+
+
+};
+
 const getAllEvents = async (query: EventSearchParams) => {
     const where = buildEventSearchQuery(query);
 
@@ -137,15 +172,34 @@ const getAllEvents = async (query: EventSearchParams) => {
         orderBy: {
             date: "asc",
         },
-        include: {
+        select: {
+            id: true,
+            title: true,
+            type: true,
+            location: true,
+            image: true,
+            joiningFee: true,
+            date: true,
             host: {
                 select: {
                     id: true,
                     email: true,
+                    profile: {
+                        select: {
+                            fullName: true,
+                            image: true
+                        }
+                    }
                 },
             },
-            reviews: true
+            status: true,
+            _count: {
+                select: {
+                    participants: true,
+                },
+            }
         },
+
     });
 
     return events;
@@ -263,7 +317,8 @@ const deleteEvent = async (user: IJWTPayload, req: Request) => {
     });
 
 
-    if (existingEvent.hostId !== userInfo.id) {
+    if (existingEvent.hostId !== userInfo.id &&
+        userInfo.role !== UserRole.ADMIN) {
         throw new Error("You are not allowed to delete this event");
     }
 
@@ -286,6 +341,7 @@ const deleteEvent = async (user: IJWTPayload, req: Request) => {
 export const EventService = {
     createEvent,
     updateEvent,
+    changeStatus,
     getAllEvents,
     joinEvent,
     deleteEvent

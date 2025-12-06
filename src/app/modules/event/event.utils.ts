@@ -16,7 +16,7 @@ export const buildEventSearchQuery = (
   const { type, date, startDate, endDate, location } = params;
 
   const where: Prisma.EventWhereInput = {
-    status: "OPEN", 
+    // status: "OPEN", 
   };
 
   //  Filter by Event Type

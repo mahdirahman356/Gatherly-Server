@@ -86,16 +86,13 @@ const getAllUsers = async (role: UserRole) => {
                     events: true,
                 },
             },
-
-            events: true, // frontend এ condition দিয়ে দেখাবে
         },
     });
 
-    const result = users.map(({ _count, role, events, ...user }) => ({
+    const result = users.map(({ _count, role, ...user }) => ({
         ...user,
         role,
         ...(role === "HOST" && {
-            events,
             eventsCount: _count.events,
         }),
     }));
