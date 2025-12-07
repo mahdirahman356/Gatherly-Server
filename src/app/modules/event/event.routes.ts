@@ -12,7 +12,6 @@ router.post(
     auth(UserRole.HOST),
     fileUploader.upload.single('file'),
     (req: Request, res: Response, next: NextFunction) => {
-        console.log(JSON.parse(req.body.data))
         req.body = EventValidation.createEventSchema.parse(JSON.parse(req.body.data))
         return EventController.createEvent(req, res, next)
     }
@@ -38,6 +37,12 @@ router.patch(
 router.get(
     "/",
     EventController.getAllEvents
+)
+
+router.get(
+    "/host-events",
+    auth(UserRole.HOST),
+    EventController.getMyHostedEvents
 )
 
 router.post(

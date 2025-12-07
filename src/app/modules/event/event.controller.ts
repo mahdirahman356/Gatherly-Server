@@ -60,6 +60,19 @@ const getAllEvents = catchAsync(async (req: Request, res: Response) => {
     })
 })
 
+const getMyHostedEvents = catchAsync(async (req: Request & { user?: IJWTPayload }, res: Response) => {
+
+    const user = req.user;
+    const result = await EventService.getMyHostedEvents(user as IJWTPayload);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "All event fetched successfully!",
+        data: result
+    })
+})
+
 const joinEvent = catchAsync(async (req: Request & { user?: IJWTPayload }, res: Response) => {
 
     const user = req.user;
@@ -92,6 +105,7 @@ export const EventController = {
     updateEvent,
     changeStatus,
     getAllEvents,
+    getMyHostedEvents,
     joinEvent,
     deleteEvent
 }

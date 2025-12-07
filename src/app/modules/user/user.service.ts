@@ -42,7 +42,7 @@ const createUser = async (req: Request) => {
 
 const myProfile = async (user: IJWTPayload) => {
 
-    const userInfo = await prisma.user.findUniqueOrThrow({
+    const userData = await prisma.user.findUniqueOrThrow({
         where: {
             email: user.email,
         },
@@ -50,19 +50,18 @@ const myProfile = async (user: IJWTPayload) => {
             id: true,
             email: true,
             role: true,
-            profile: {
+            status: true,
+            createdAt: true,
+            profile: true,
+            events: true,
+            _count: {
                 select: {
-                    fullName: true,
-                    image: true,
-                    bio: true,
-                    interests: true,
-                    location: true
+                    events: true
                 }
             }
-        }
-    });
+        }})
 
-    return userInfo;
+    return userData;
 
 };
 
@@ -80,7 +79,6 @@ const getAllUsers = async (role: UserRole) => {
             status: true,
             createdAt: true,
             profile: true,
-
             _count: {
                 select: {
                     events: true,

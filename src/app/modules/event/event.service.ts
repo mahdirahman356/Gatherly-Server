@@ -107,6 +107,11 @@ const updateEvent = async (user: IJWTPayload, req: Request) => {
         throw new Error("Minimum participants cannot be greater than maximum");
     }
 
+    if(existingEvent.status === "COMPLETED"){
+        throw new Error("Completed event status cannot be changed");
+
+    }
+
     const updatedEvent = await prisma.event.update({
         where: { id },
         data: {
@@ -131,7 +136,7 @@ const updateEvent = async (user: IJWTPayload, req: Request) => {
 const changeStatus = async (user: IJWTPayload, eventId: string, status: EventStatus) => {
     const userInfo = await prisma.user.findUniqueOrThrow({
         where: { email: user.email },
-    }); 
+    });
 
     const existingEvent = await prisma.event.findUnique({
         where: { id: eventId },
@@ -170,7 +175,7 @@ const getAllEvents = async (query: EventSearchParams) => {
     const events = await prisma.event.findMany({
         where,
         orderBy: {
-            date: "asc",
+            createdAt: "desc",
         },
         select: {
             id: true,
@@ -203,6 +208,45 @@ const getAllEvents = async (query: EventSearchParams) => {
     });
 
     return events;
+}
+
+const getMyHostedEvents = async (user: IJWTPayload) => {
+
+    const userInfo = await prisma.user.findUniqueOrThrow({
+        where: { email: user.email },
+    });
+
+    const events = await prisma.event.findMany({
+        where: {
+            hostId: userInfo.id,
+        },
+        orderBy: {
+            createdAt: "desc", 
+        },
+        include: {
+            host: {
+                select: {
+                    id: true,
+                    email: true,
+                    profile: {
+                        select: {
+                            fullName: true,
+                            image: true,
+                        },
+                    },
+                },
+            },
+            _count: {
+                select: {
+                    participants: true, 
+                },
+            },
+        },
+    });
+
+    return events;
+
+
 }
 
 const joinEvent = async (user: IJWTPayload, req: Request) => {
@@ -343,6 +387,7 @@ export const EventService = {
     updateEvent,
     changeStatus,
     getAllEvents,
+    getMyHostedEvents,
     joinEvent,
     deleteEvent
 }
