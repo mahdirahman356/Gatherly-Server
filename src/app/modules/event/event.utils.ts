@@ -1,25 +1,20 @@
-// src/modules/event/event.utils.ts
-
 import { Prisma } from "@prisma/client";
 
 export interface EventSearchParams {
-  type?: string;        
-  date?: string;        
-  startDate?: string;  
-  endDate?: string;   
-  location?: string;  
+  type?: string;
+  date?: string;       
+  location?: string;
+  searchTerm?: string
 }
 
 export const buildEventSearchQuery = (
   params: EventSearchParams
 ): Prisma.EventWhereInput => {
-  const { type, date, startDate, endDate, location } = params;
+  const { type, date, location, searchTerm } = params;
 
-  const where: Prisma.EventWhereInput = {
-    // status: "OPEN", 
-  };
+  const where: Prisma.EventWhereInput = {};
 
-  //  Filter by Event Type
+  //  FILTER BY EVENT TYPE
   if (type) {
     where.type = {
       equals: type,
@@ -27,32 +22,103 @@ export const buildEventSearchQuery = (
     };
   }
 
-  // Filter by Single Date
-  if (date) {
-    const start = new Date(date);
-    const end = new Date(date);
-    end.setDate(end.getDate() + 1);
-
-    where.date = {
-      gte: start,
-      lt: end,
-    };
-  }
-
-  // Filter by Date Range
-  if (startDate && endDate) {
-    where.date = {
-      gte: new Date(startDate),
-      lte: new Date(endDate),
-    };
-  }
-
-  // Filter by Location (partial search)
-  if (location) {
+  //  FILTER BY LOCATION
+  if (location && location !== "All Locations") {
     where.location = {
-      contains: location,
+      contains: location.split(",")[0], // safety trim
       mode: "insensitive",
     };
+  }
+
+  //  HANDLE PREDEFINED DATE LABELS (Today, This Week, etc.)
+  if (date) {
+    const today = new Date();
+
+    let start: Date | null = null;
+    let end: Date | null = null;
+
+    switch (date) {
+      case "Today": {
+        start = new Date(today);
+        start.setHours(0, 0, 0, 0);
+
+        end = new Date(today);
+        end.setHours(23, 59, 59, 999);
+        break;
+      }
+
+      case "This Week": {
+        start = new Date(today);
+        end = new Date(today);
+        end.setDate(today.getDate() + 7);
+        break;
+      }
+
+      case "This Weekend": {
+        const day = today.getDay();
+        start = new Date(today);
+        start.setDate(today.getDate() + (6 - day));
+
+        end = new Date(start);
+        end.setDate(start.getDate() + 1);
+        break;
+      }
+
+      case "Next Week": {
+        start = new Date(today);
+        start.setDate(today.getDate() + 7);
+
+        end = new Date(start);
+        end.setDate(start.getDate() + 7);
+        break;
+      }
+
+      case "This Month": {
+        start = new Date(today.getFullYear(), today.getMonth(), 1);
+        end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        break;
+      }
+
+      default: {
+        const realDate = new Date(date);
+        if (!isNaN(realDate.getTime())) {
+          start = new Date(realDate);
+          end = new Date(realDate);
+          end.setDate(end.getDate() + 1);
+        }
+      }
+    }
+
+    if (start && end) {
+      where.date = {
+        gte: start,
+        lt: end,
+      };
+    }
+  }
+
+  // Search
+  if (searchTerm) {
+    where.OR = [
+      {
+        title: {
+          contains: searchTerm,
+          mode: "insensitive",
+        },
+      },
+      {
+        description: {
+          contains: searchTerm,
+          mode: "insensitive",
+        },
+      },
+      {
+        location: {
+          contains: searchTerm,
+          mode: "insensitive",
+        },
+      },
+    ];
   }
 
   return where;

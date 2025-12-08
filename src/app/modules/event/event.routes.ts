@@ -45,6 +45,18 @@ router.get(
     EventController.getMyHostedEvents
 )
 
+router.get(
+    "/host-participants",
+    auth(UserRole.HOST),
+    EventController.getAllParticipantsOfHost
+)
+
+router.get(
+    "/host-events-revenue",
+    auth(UserRole.HOST),
+    EventController.getMyHostedEventsRevenue
+)
+
 router.post(
     "/:id/join",
     auth(UserRole.USER),

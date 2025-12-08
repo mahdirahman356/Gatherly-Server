@@ -107,7 +107,7 @@ const updateEvent = async (user: IJWTPayload, req: Request) => {
         throw new Error("Minimum participants cannot be greater than maximum");
     }
 
-    if(existingEvent.status === "COMPLETED"){
+    if (existingEvent.status === "COMPLETED") {
         throw new Error("Completed event status cannot be changed");
 
     }
@@ -221,7 +221,7 @@ const getMyHostedEvents = async (user: IJWTPayload) => {
             hostId: userInfo.id,
         },
         orderBy: {
-            createdAt: "desc", 
+            createdAt: "desc",
         },
         include: {
             host: {
@@ -238,7 +238,7 @@ const getMyHostedEvents = async (user: IJWTPayload) => {
             },
             _count: {
                 select: {
-                    participants: true, 
+                    participants: true,
                 },
             },
         },
@@ -246,6 +246,96 @@ const getMyHostedEvents = async (user: IJWTPayload) => {
 
     return events;
 
+}
+
+const getAllParticipantsOfHost = async (user: IJWTPayload) => {
+
+    const userInfo = await prisma.user.findUniqueOrThrow({
+        where: { email: user.email },
+    });
+
+     const participants = await prisma.participant.findMany({
+      where: {
+        event: {
+          hostId: userInfo.id,
+        },
+      },
+      include: {
+        user: {
+          select: {
+             profile: {
+                select: {
+                    fullName: true,
+                    image: true,
+                    location: true
+                }
+             }
+          },
+        },
+        event: {
+          select: {
+            id: true,
+            title: true,
+            type: true,
+            image: true,
+            date: true,
+            status: true
+          },
+        },
+      },
+      orderBy: {
+        joinedAt: "desc",
+      },
+    });
+
+    return participants;
+
+}
+
+const getMyHostedEventsRevenue = async (user: IJWTPayload) => {
+
+    const userInfo = await prisma.user.findUniqueOrThrow({
+        where: { email: user.email },
+    });
+
+    const events = await prisma.event.findMany({
+        where: { hostId: userInfo.id },
+        select: {
+            id: true,
+            title: true,
+            type: true,        
+            image: true,      
+            date: true, 
+            status: true,       
+            joiningFee: true,      
+            participants: {
+                where: { paymentStatus: "PAID" },
+                select: { id: true },
+            },
+        },
+    });
+
+    const revenueData = events.map((event) => {
+        const participantsCount = event.participants.length;
+        const pricePerPerson = event.joiningFee || 0;
+        const totalRevenue = participantsCount * pricePerPerson;
+
+        return {
+            eventId: event.id,
+            eventTitle: event.title,
+            eventType: event.type,
+            eventImage: event.image,
+            eventStatus: event.status,
+            eventDate: event.date,
+            participantsCount,
+            pricePerPerson,
+            totalRevenue,
+        };
+    });
+
+    const totalRevenue = revenueData.reduce((sum, e) => sum + e.totalRevenue, 0);
+
+    return {  revenueData, totalRevenue };
 
 }
 
@@ -388,6 +478,8 @@ export const EventService = {
     changeStatus,
     getAllEvents,
     getMyHostedEvents,
+    getAllParticipantsOfHost,
+    getMyHostedEventsRevenue,
     joinEvent,
     deleteEvent
 }
