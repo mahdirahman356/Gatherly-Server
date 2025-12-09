@@ -8,6 +8,10 @@ import { createStripeCheckoutSession } from "../../utils/stripePayment";
 import { v4 as uuidv4 } from 'uuid';
 import { EventStatus, PaymentStatus } from "@prisma/client";
 import { UserRole } from "../user/user.interface";
+interface MyEventQuery {
+  type?: "upcoming" | "past";
+}
+
 
 const createEvent = async (user: IJWTPayload, req: Request) => {
 
@@ -177,14 +181,8 @@ const getAllEvents = async (query: EventSearchParams) => {
         orderBy: {
             createdAt: "desc",
         },
-        select: {
-            id: true,
-            title: true,
-            type: true,
-            location: true,
-            image: true,
-            joiningFee: true,
-            date: true,
+        include: {
+
             host: {
                 select: {
                     id: true,
@@ -197,7 +195,6 @@ const getAllEvents = async (query: EventSearchParams) => {
                     }
                 },
             },
-            status: true,
             _count: {
                 select: {
                     participants: true,
@@ -210,11 +207,126 @@ const getAllEvents = async (query: EventSearchParams) => {
     return events;
 }
 
+const getEventDetails = async (eventId: string) => {
+    const event = await prisma.event.findUnique({
+        where: {
+            id: eventId,
+        },
+        include: {
+            host: {
+                select: {
+                    id: true,
+                    email: true,
+                    profile: {
+                        select: {
+                            fullName: true,
+                            image: true,
+                        },
+                    },
+                },
+            },
+
+            participants: {
+                select: {
+                    id: true,
+                    user: {
+                        select: {
+                            id: true,
+                            email: true,
+                            profile: {
+                                select: {
+                                    fullName: true,
+                                    image: true,
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+
+            _count: {
+                select: {
+                    participants: true,
+                },
+            },
+        },
+    });
+
+    if (!event) {
+        throw new Error("Event not found");
+    }
+
+    return event;
+}
+
+const getUserEvents = async (user: IJWTPayload, query: MyEventQuery) => {
+
+    const userInfo = await prisma.user.findUniqueOrThrow({
+        where: { email: user.email },
+    });
+
+    const today = new Date();
+
+    let dateFilter = {};
+
+    if (query.type === "past") {
+        dateFilter = {
+            lt: today,
+        };
+    } else {
+        dateFilter = {
+            gte: today,
+        };
+    }
+
+    const upcomingEvents = await prisma.participant.findMany({
+        where: {
+            userId: userInfo.id,
+
+            event: {
+                date: dateFilter,
+            },
+
+            OR: [
+                { paymentStatus: "FREE" },
+                { paymentStatus: "PAID" },
+            ],
+        },
+
+        include: {
+            event: {
+                include: {
+                    host: {
+                        select: {
+                            id: true,
+                            email: true,
+                            profile: true,
+                        },
+                    },
+                    _count: {
+                        select: {
+                            participants: true,
+                        },
+                    },
+                },
+            },
+        },
+        orderBy: {
+            event: {
+                date: "asc",
+            },
+        },
+    });
+    return upcomingEvents.map(p => p.event);
+}
+
 const getMyHostedEvents = async (user: IJWTPayload) => {
 
     const userInfo = await prisma.user.findUniqueOrThrow({
         where: { email: user.email },
     });
+
+    console.log("id", userInfo.id)
 
     const events = await prisma.event.findMany({
         where: {
@@ -254,38 +366,38 @@ const getAllParticipantsOfHost = async (user: IJWTPayload) => {
         where: { email: user.email },
     });
 
-     const participants = await prisma.participant.findMany({
-      where: {
-        event: {
-          hostId: userInfo.id,
+    const participants = await prisma.participant.findMany({
+        where: {
+            event: {
+                hostId: userInfo.id,
+            },
         },
-      },
-      include: {
-        user: {
-          select: {
-             profile: {
+        include: {
+            user: {
                 select: {
-                    fullName: true,
+                    profile: {
+                        select: {
+                            fullName: true,
+                            image: true,
+                            location: true
+                        }
+                    }
+                },
+            },
+            event: {
+                select: {
+                    id: true,
+                    title: true,
+                    type: true,
                     image: true,
-                    location: true
-                }
-             }
-          },
+                    date: true,
+                    status: true
+                },
+            },
         },
-        event: {
-          select: {
-            id: true,
-            title: true,
-            type: true,
-            image: true,
-            date: true,
-            status: true
-          },
+        orderBy: {
+            joinedAt: "desc",
         },
-      },
-      orderBy: {
-        joinedAt: "desc",
-      },
     });
 
     return participants;
@@ -303,11 +415,11 @@ const getMyHostedEventsRevenue = async (user: IJWTPayload) => {
         select: {
             id: true,
             title: true,
-            type: true,        
-            image: true,      
-            date: true, 
-            status: true,       
-            joiningFee: true,      
+            type: true,
+            image: true,
+            date: true,
+            status: true,
+            joiningFee: true,
             participants: {
                 where: { paymentStatus: "PAID" },
                 select: { id: true },
@@ -335,7 +447,7 @@ const getMyHostedEventsRevenue = async (user: IJWTPayload) => {
 
     const totalRevenue = revenueData.reduce((sum, e) => sum + e.totalRevenue, 0);
 
-    return {  revenueData, totalRevenue };
+    return { revenueData, totalRevenue };
 
 }
 
@@ -414,8 +526,8 @@ const joinEvent = async (user: IJWTPayload, req: Request) => {
             eventTitle: event.title,
             userId,
             eventId,
-            successUrl: "http://localhost:3000/payment-success",
-            cancelUrl: "http://localhost:3000/payment-cancel",
+            successUrl: `http://localhost:3000/dashboard/upcoming?payment=success&eventId=${event.id}`,
+            cancelUrl: `http://localhost:3000/event/${event.id}`,
         });
 
         return {
@@ -477,6 +589,8 @@ export const EventService = {
     updateEvent,
     changeStatus,
     getAllEvents,
+    getEventDetails,
+    getUserEvents,
     getMyHostedEvents,
     getAllParticipantsOfHost,
     getMyHostedEventsRevenue,

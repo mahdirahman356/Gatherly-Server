@@ -30,7 +30,7 @@ router.patch(
 
 router.patch(
     "/status/:id",
-     auth(UserRole.HOST, UserRole.ADMIN),
+    auth(UserRole.HOST, UserRole.ADMIN),
     EventController.changeStatus
 )
 
@@ -40,19 +40,30 @@ router.get(
 )
 
 router.get(
-    "/host-events",
+    "/:id",
+    EventController.getEventDetails
+)
+
+router.get(
+    "/user/upcoming-events",
+    auth(UserRole.USER),
+    EventController.getUserEvents
+)
+
+router.get(
+    "/host/hosted-events",
     auth(UserRole.HOST),
     EventController.getMyHostedEvents
 )
 
 router.get(
-    "/host-participants",
+    "/host/participants",
     auth(UserRole.HOST),
     EventController.getAllParticipantsOfHost
 )
 
 router.get(
-    "/host-events-revenue",
+    "/host/events-revenue",
     auth(UserRole.HOST),
     EventController.getMyHostedEventsRevenue
 )

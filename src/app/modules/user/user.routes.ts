@@ -33,7 +33,7 @@ router.get(
 
 router.patch(
     "/update-profile",
-    auth(UserRole.USER),
+    auth(UserRole.USER, UserRole.HOST),
     fileUploader.upload.single('file'),
     (req: Request, res: Response, next: NextFunction) => {
         if (req.body?.data) {

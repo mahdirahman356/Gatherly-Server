@@ -60,6 +60,33 @@ const getAllEvents = catchAsync(async (req: Request, res: Response) => {
     })
 })
 
+const getEventDetails = catchAsync(async (req: Request, res: Response) => {
+
+    const eventId = req.params.id;
+    const result = await EventService.getEventDetails(eventId);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Event details fetched successfully!",
+        data: result
+    })
+})
+
+const getUserEvents = catchAsync(async (req: Request & { user?: IJWTPayload }, res: Response) => {
+
+    const user = req.user;
+    const query = req.query
+    const result = await EventService.getUserEvents(user as IJWTPayload, query);
+
+    sendResponse(res, {
+        statusCode: 200,
+        success: true,
+        message: "Upcoming events fetched successfully!",
+        data: result
+    })
+})
+
 const getMyHostedEvents = catchAsync(async (req: Request & { user?: IJWTPayload }, res: Response) => {
 
     const user = req.user;
@@ -131,6 +158,8 @@ export const EventController = {
     updateEvent,
     changeStatus,
     getAllEvents,
+    getEventDetails,
+    getUserEvents,
     getMyHostedEvents,
     getAllParticipantsOfHost,
     getMyHostedEventsRevenue,
