@@ -23,6 +23,8 @@ model Event {
   participants Participant[]
 
   payments Payment[]
+
+  savedEvents SavedEvent[]
 }
 
 model Participant {
@@ -39,6 +41,19 @@ model Participant {
 
   @@unique([userId, eventId])
 }
+
+model SavedEvent {
+  id        String   @id @default(uuid())
+  userId    String
+  eventId   String
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId])
+}
+
 
 model Payment {
   id String @id @default(uuid())

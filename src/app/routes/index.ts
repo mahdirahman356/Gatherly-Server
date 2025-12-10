@@ -3,6 +3,7 @@ import { UserRoutes } from '../modules/user/user.routes';
 import { AuthRoutes } from '../modules/auth/auth.routes';
 import { EventRoutes } from '../modules/event/event.routes';
 import { ReviewRoutes } from '../modules/review/review.routes';
+import { savedEventsRoutes } from '../modules/savedEvents/saved.events.routes';
 
 
 const router = express.Router();
@@ -23,6 +24,10 @@ const moduleRoutes = [
     {
         path: '/review',
         route: ReviewRoutes
+    },
+    {
+        path: '/event/saved',
+        route: savedEventsRoutes
     },
 ];
 
