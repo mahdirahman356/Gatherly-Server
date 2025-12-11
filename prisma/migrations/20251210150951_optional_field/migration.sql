@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "Profile" ALTER COLUMN "fullName" DROP NOT NULL,
+ALTER COLUMN "interests" SET DEFAULT ARRAY[]::TEXT[],
+ALTER COLUMN "location" DROP NOT NULL;

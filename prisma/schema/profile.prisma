@@ -1,11 +1,11 @@
 model Profile {
   id        String   @id @default(uuid())
-  fullName  String
+  fullName  String?
   image     String?
   bio       String?
-  interests String[]
-  location  String
+  interests String[] @default([])
+  location  String?
 
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId String @unique
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

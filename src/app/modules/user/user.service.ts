@@ -10,200 +10,286 @@ import { UserStatus } from "@prisma/client";
 
 const createUser = async (req: Request) => {
 
-    const { email, password, fullName, location } = req.body;
+  const { email, password, fullName, location } = req.body;
 
-    const hashedPassword = await bcrypt.hash(
-        password,
-        Number(config.bcrypt.salt_round)
-    );
+  const hashedPassword = await bcrypt.hash(
+    password,
+    Number(config.bcrypt.salt_round)
+  );
 
-    const result = await prisma.$transaction(async (tx) => {
-        const user = await tx.user.create({
-            data: {
-                email,
-                password: hashedPassword,
-                role: UserRole.USER,
-            },
-        });
-
-        await tx.profile.create({
-            data: {
-                fullName,
-                location,
-                userId: user.id,
-            },
-        });
-
-        return user;
+  const result = await prisma.$transaction(async (tx) => {
+    const user = await tx.user.create({
+      data: {
+        email,
+        password: hashedPassword,
+        role: UserRole.USER,
+      },
     });
 
-    return result;
+    await tx.profile.create({
+      data: {
+        fullName,
+        location,
+        userId: user.id,
+      },
+    });
+
+    return user;
+  });
+
+  return result;
 };
 
 const myProfile = async (user: IJWTPayload) => {
 
-    const userData = await prisma.user.findUniqueOrThrow({
-        where: {
-            email: user.email,
-        },
-        select: {
-            id: true,
-            email: true,
-            role: true,
-            status: true,
-            createdAt: true,
-            profile: true,
-            events: true,
-            _count: {
-                select: {
-                    events: true
-                }
-            }
-        }})
+  const userInfo = await prisma.user.findUniqueOrThrow({
+    where: { email: user.email },
 
-    return userData;
+    include: {
+      profile: true,
+      _count: {
+        select: {
+          events: true,
+        },
+      },
+      participants: {
+
+        include: {
+          event: {
+            include: {
+              host: {
+                select: {
+                  id: true,
+                  email: true,
+                  profile: true,
+                },
+              },
+              _count: {
+                select: {
+                  participants: true,
+                },
+              },
+            },
+          },
+        },
+
+        orderBy: {
+          joinedAt: "desc",
+        },
+      },
+      events: {
+        include: {
+          host: {
+            select: {
+              id: true,
+              email: true,
+              profile: true,
+            },
+          },
+          _count: {
+            select: {
+              participants: true,
+            },
+
+          },
+        },
+        orderBy: {
+          date: "desc",
+        },
+      },
+    },
+  });
+
+  // if (userInfo.role === "USER") {
+  //   return {
+  //     id: userInfo.id,
+  //     email: userInfo.email,
+  //     role: userInfo.role,
+  //     status: userInfo.status,
+  //     createdAt: userInfo.createdAt,
+  //     profile: userInfo.profile,
+  //     joinedEvents: userInfo.participants.map(events => ({
+  //       ...events,
+  //     })),
+  //   };
+  // }
+
+  if (userInfo.role === "USER") {
+    const events = userInfo.participants.map(p => ({
+      ...p.event,
+    }));
+
+    return {
+      id: userInfo.id,
+      email: userInfo.email,
+      role: userInfo.role,
+      status: userInfo.status,
+      createdAt: userInfo.createdAt,
+      profile: userInfo.profile,
+      totalEvents: events.length,
+      events,
+    };
+  }
+
+  //  HOST VIEW
+  if (userInfo.role === "HOST") {
+    return {
+      id: userInfo.id,
+      email: userInfo.email,
+      role: userInfo.role,
+      status: userInfo.status,
+      createdAt: userInfo.createdAt,
+      profile: userInfo.profile,
+      totalEvents: userInfo._count.events,
+      events: userInfo.events.map(event => ({
+        ...event,
+      })),
+    };
+  }
+
+  return userInfo;
 
 };
 
 const getAllUsers = async (role: UserRole) => {
 
-    const users = await prisma.user.findMany({
-        where: role ? { role } : undefined,
-        orderBy: {
-            createdAt: "desc",
-        },
+  const users = await prisma.user.findMany({
+    where: role ? { role } : undefined,
+    orderBy: {
+      createdAt: "desc",
+    },
+    select: {
+      id: true,
+      email: true,
+      role: true,
+      status: true,
+      createdAt: true,
+      profile: true,
+      _count: {
         select: {
-            id: true,
-            email: true,
-            role: true,
-            status: true,
-            createdAt: true,
-            profile: true,
-            _count: {
-                select: {
-                    events: true,
-                },
-            },
+          events: true,
         },
-    });
+      },
+    },
+  });
 
-    const result = users.map(({ _count, role, ...user }) => ({
-        ...user,
-        role,
-        ...(role === "HOST" && {
-            eventsCount: _count.events,
-        }),
-    }));
+  const result = users.map(({ _count, role, ...user }) => ({
+    ...user,
+    role,
+    ...(role === "HOST" && {
+      eventsCount: _count.events,
+    }),
+  }));
 
-    return result;
+  return result;
 
 };
 
 const getSingleUser = async (userId: string) => {
-    const result = await prisma.user.findUnique({
-        where: {
-            id: userId,
-        },
-        select: {
-            id: true,
-            email: true,
-            role: true,
-            createdAt: true,
-            profile: true,
-            events: true
-        },
-    });
+  const result = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+    select: {
+      id: true,
+      email: true,
+      role: true,
+      createdAt: true,
+      profile: true,
+      events: true
+    },
+  });
 
-    if (!result || result.role === "ADMIN") {
-        throw new Error("User not found");
-    }
+  if (!result || result.role === "ADMIN") {
+    throw new Error("User not found");
+  }
 
-    return result;
+  return result;
 };
 
 const updateProfile = async (user: IJWTPayload, req: Request) => {
 
-    const userInfo = await prisma.user.findUniqueOrThrow({
-        where: {
-            email: user.email,
-        },
-    });
+  const userInfo = await prisma.user.findUniqueOrThrow({
+    where: {
+      email: user.email,
+    },
+  });
 
 
-    if (req.file) {
-        const uploadResult = await fileUploader.uploadToCloudinary(req.file);
+  if (req.file) {
+    const uploadResult = await fileUploader.uploadToCloudinary(req.file);
 
-        if (!uploadResult?.secure_url) {
-            throw new Error("Image upload failed");
-        }
-
-        req.body.image = uploadResult.secure_url;
+    if (!uploadResult?.secure_url) {
+      throw new Error("Image upload failed");
     }
 
-    const profileInfo = await prisma.profile.upsert({
-        where: {
-            userId: userInfo.id,
-        },
-        update: req.body,
-        create: {
-            userId: userInfo.id,
-            ...req.body,
-        },
-    });
+    req.body.image = uploadResult.secure_url;
+  }
 
-    return profileInfo;
+  const profileInfo = await prisma.profile.upsert({
+    where: {
+      userId: userInfo.id,
+    },
+    update: req.body,
+    create: {
+      userId: userInfo.id,
+      ...req.body,
+    },
+  });
+
+  return profileInfo;
 };
 
 const changeUserStatus = async (userId: string, status: UserStatus) => {
 
-    const result = await prisma.user.update({
-        where: {
-            id: userId
-        },
-        data: {
-            status: status
-        },
-    })
+  const result = await prisma.user.update({
+    where: {
+      id: userId
+    },
+    data: {
+      status: status
+    },
+  })
 
-    return result
+  return result
 
 };
 
 const changeUserRole = async (userId: string, role: UserRole) => {
 
-    const result = await prisma.user.update({
-        where: {
-            id: userId
-        },
-        data: {
-            role: role
-        },
-    })
+  const result = await prisma.user.update({
+    where: {
+      id: userId
+    },
+    data: {
+      role: role
+    },
+  })
 
-    return result
+  return result
 
 };
 
 const deleteUser = async (userId: string) => {
 
-    const result = await prisma.user.delete({
-        where: {
-            id: userId
-        }
-    })
+  const result = await prisma.user.delete({
+    where: {
+      id: userId
+    }
+  })
 
-    return result
+  return result
 
 };
 
 
 export const UserService = {
-    createUser,
-    myProfile,
-    getAllUsers,
-    getSingleUser,
-    updateProfile,
-    changeUserStatus,
-    changeUserRole,
-    deleteUser
+  createUser,
+  myProfile,
+  getAllUsers,
+  getSingleUser,
+  updateProfile,
+  changeUserStatus,
+  changeUserRole,
+  deleteUser
 }

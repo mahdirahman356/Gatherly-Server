@@ -249,6 +249,8 @@ const getEventDetails = async (eventId: string) => {
                     participants: true,
                 },
             },
+
+            reviews: true
         },
     });
 

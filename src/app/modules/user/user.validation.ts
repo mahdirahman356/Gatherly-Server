@@ -22,25 +22,31 @@ const createUserZodSchema = z.object({
 
 
 const updateUserZodSchema = z.object({
-    fullName: z
-    .string().min(2, "Name must be at least 2 characters")
+  fullName: z
+    .string().optional(),
+
+  bio: z
+    .string()
+    .min(5, "Bio must be at least 5 characters")
     .optional(),
 
-    email: z
-    .string().email("Invalid email")
-    .optional(),
-
-    password: z
-    .string().min(6, "Password must be at least 6 characters")
-    .optional(),
-
-    location: z.string()      
+  location: z
+    .string()
     .min(2, "Location must be at least 2 characters")
+    .optional(),
+
+  image: z
+    .string()
+    .url("Invalid image URL")
+    .optional(),
+
+  interests: z
+    .array(z.string().min(2, "Interest must be at least 2 characters"))
     .optional(),
 });
 
 
 export const UserValidation = {
-    createUserZodSchema,
-    updateUserZodSchema
+  createUserZodSchema,
+  updateUserZodSchema
 };
