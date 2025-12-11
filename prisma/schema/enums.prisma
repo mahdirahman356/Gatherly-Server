@@ -4,6 +4,12 @@ enum Role {
   ADMIN
 }
 
+enum HostRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 enum UserStatus {
     ACTIVE
     INACTIVE

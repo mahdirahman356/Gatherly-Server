@@ -44,7 +44,7 @@ const getAllUsers = catchAsync(async (req: Request, res: Response) => {
 
 const getSingleUser = catchAsync(async (req: Request, res: Response) => {
 
-    const userId = req.query.id as UserRole
+    const userId = req.params.id as string
     const result = await UserService.getSingleUser(userId);
     sendResponse(res, {
         statusCode: httpStatus.OK,
@@ -69,7 +69,7 @@ const updateProfile = catchAsync(async (req: Request & { user?: IJWTPayload }, r
 const changeUserStatus = catchAsync(async (req: Request, res: Response) => {
 
     const userId = req.params.id
-    const {status} = req.body
+    const { status } = req.body
     const result = await UserService.changeUserStatus(userId, status);
     sendResponse(res, {
         statusCode: httpStatus.OK,
@@ -82,7 +82,7 @@ const changeUserStatus = catchAsync(async (req: Request, res: Response) => {
 const changeUserRole = catchAsync(async (req: Request, res: Response) => {
 
     const userId = req.params.id
-    const {role} = req.body
+    const { role } = req.body
     const result = await UserService.changeUserRole(userId, role);
     sendResponse(res, {
         statusCode: httpStatus.OK,
@@ -91,6 +91,43 @@ const changeUserRole = catchAsync(async (req: Request, res: Response) => {
         data: result
     })
 });
+
+const requestHostRole = catchAsync(async (req: Request & { user?: IJWTPayload }, res: Response) => {
+
+    const user = req.user;
+    const result = await UserService.requestHostRole(user as IJWTPayload);
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Host request submitted successfully",
+        data: result
+    })
+});
+
+const getPendingHostRequests = catchAsync(async (req: Request, res: Response) => {
+
+    const result = await UserService.getPendingHostRequests();
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Host requests fetched successfully",
+        data: result
+    })
+});
+
+const updateHostRequestStatus = catchAsync(async (req: Request & { user?: IJWTPayload }, res: Response) => {
+
+    const id = req.params.id
+    const { status } = req.body
+    const result = await UserService.updateHostRequestStatus(id, status as "APPROVED" | "REJECTED");
+    sendResponse(res, {
+        statusCode: httpStatus.OK,
+        success: true,
+        message: "Request approved successfully",
+        data: result
+    })
+});
+
 
 const deleteUser = catchAsync(async (req: Request, res: Response) => {
 
@@ -112,5 +149,8 @@ export const UserController = {
     changeUserStatus,
     changeUserRole,
     deleteUser,
+    requestHostRole,
+    getPendingHostRequests,
+    updateHostRequestStatus,
     getSingleUser
 }

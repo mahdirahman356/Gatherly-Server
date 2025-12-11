@@ -77,6 +77,21 @@ const myProfile = async (user: IJWTPayload) => {
           joinedAt: "desc",
         },
       },
+      reviews: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              profile: {
+                select: {
+                  fullName: true,
+                  image: true,
+                }
+              }
+            }
+          }
+        }
+      },
       events: {
         include: {
           host: {
@@ -97,22 +112,9 @@ const myProfile = async (user: IJWTPayload) => {
           date: "desc",
         },
       },
+      hostRequests: true
     },
   });
-
-  // if (userInfo.role === "USER") {
-  //   return {
-  //     id: userInfo.id,
-  //     email: userInfo.email,
-  //     role: userInfo.role,
-  //     status: userInfo.status,
-  //     createdAt: userInfo.createdAt,
-  //     profile: userInfo.profile,
-  //     joinedEvents: userInfo.participants.map(events => ({
-  //       ...events,
-  //     })),
-  //   };
-  // }
 
   if (userInfo.role === "USER") {
     const events = userInfo.participants.map(p => ({
@@ -127,6 +129,7 @@ const myProfile = async (user: IJWTPayload) => {
       createdAt: userInfo.createdAt,
       profile: userInfo.profile,
       totalEvents: events.length,
+      hostRequest: userInfo.hostRequests,
       events,
     };
   }
@@ -141,6 +144,7 @@ const myProfile = async (user: IJWTPayload) => {
       createdAt: userInfo.createdAt,
       profile: userInfo.profile,
       totalEvents: userInfo._count.events,
+      reviews: userInfo.reviews,
       events: userInfo.events.map(event => ({
         ...event,
       })),
@@ -148,6 +152,8 @@ const myProfile = async (user: IJWTPayload) => {
   }
 
   return userInfo;
+
+
 
 };
 
@@ -186,25 +192,116 @@ const getAllUsers = async (role: UserRole) => {
 };
 
 const getSingleUser = async (userId: string) => {
-  const result = await prisma.user.findUnique({
+  const userInfo = await prisma.user.findUniqueOrThrow({
     where: {
       id: userId,
     },
-    select: {
-      id: true,
-      email: true,
-      role: true,
-      createdAt: true,
+    include: {
       profile: true,
-      events: true
+      _count: {
+        select: {
+          events: true,
+        },
+      },
+      participants: {
+
+        include: {
+          event: {
+            include: {
+              host: {
+                select: {
+                  id: true,
+                  email: true,
+                  profile: true,
+                },
+              },
+              _count: {
+                select: {
+                  participants: true,
+                },
+              },
+            },
+          },
+        },
+
+        orderBy: {
+          joinedAt: "desc",
+        },
+      },
+      events: {
+        include: {
+          host: {
+            select: {
+              id: true,
+              email: true,
+              profile: true,
+            },
+          },
+          _count: {
+            select: {
+              participants: true,
+            },
+
+          },
+        },
+        orderBy: {
+          date: "desc",
+        },
+      },
+      reviews: {
+        include: {
+          user: {
+            select: {
+              id: true,
+              profile: {
+                select: {
+                  fullName: true,
+                  image: true,
+                }
+              }
+            }
+          }
+        }
+      }
+
     },
   });
 
-  if (!result || result.role === "ADMIN") {
-    throw new Error("User not found");
+  if (userInfo.role === "USER") {
+    const events = userInfo.participants.map(p => ({
+      ...p.event,
+    }));
+
+    return {
+      id: userInfo.id,
+      email: userInfo.email,
+      role: userInfo.role,
+      status: userInfo.status,
+      createdAt: userInfo.createdAt,
+      profile: userInfo.profile,
+      totalEvents: events.length,
+      events,
+    };
   }
 
-  return result;
+  //  HOST VIEW
+  if (userInfo.role === "HOST") {
+    return {
+      id: userInfo.id,
+      email: userInfo.email,
+      role: userInfo.role,
+      status: userInfo.status,
+      createdAt: userInfo.createdAt,
+      profile: userInfo.profile,
+      totalEvents: userInfo._count.events,
+      reviews: userInfo.reviews,
+      events: userInfo.events.map(event => ({
+        ...event,
+      })),
+    };
+  }
+
+  return userInfo;
 };
 
 const updateProfile = async (user: IJWTPayload, req: Request) => {
@@ -270,6 +367,89 @@ const changeUserRole = async (userId: string, role: UserRole) => {
 
 };
 
+const requestHostRole = async (user: IJWTPayload) => {
+
+  const userInfo = await prisma.user.findUniqueOrThrow({
+    where: {
+      email: user.email,
+    },
+  });
+
+
+  const existing = await prisma.hostRequest.findUnique({
+    where: { userId: userInfo.id },
+  });
+
+  if (existing) {
+    throw new ApiError(400, "You already submitted a host request");
+  }
+
+  const result = await prisma.hostRequest.create({
+    data: {
+      userId: userInfo.id,
+    },
+  });
+
+  return result
+
+};
+
+const getPendingHostRequests = async () => {
+   const requests = await prisma.hostRequest.findMany({
+      where: {
+        status: "PENDING",
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            email: true,
+            profile: {
+              select: {
+                fullName: true,
+                image: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    if (!requests.length) {
+      throw new ApiError(404, "No pending host requests found");
+    }
+
+    return requests;
+
+};
+
+const updateHostRequestStatus = async (id: string, status: "APPROVED" | "REJECTED") => {
+
+  const req = await prisma.hostRequest.findUnique({
+    where: { id },
+  });
+
+  if (!req) throw new ApiError(404, "Request not found");
+
+  const result = await prisma.hostRequest.update({
+    where: { id },
+    data: { status },
+  });
+
+  if (status === "APPROVED") {
+   const result = await prisma.user.update({
+      where: { id: req.userId },
+      data: { role: "HOST" },
+    });
+  }
+
+  return result
+
+};
+
 const deleteUser = async (userId: string) => {
 
   const result = await prisma.user.delete({
@@ -291,5 +471,8 @@ export const UserService = {
   updateProfile,
   changeUserStatus,
   changeUserRole,
+  requestHostRole,
+  getPendingHostRequests,
+  updateHostRequestStatus,
   deleteUser
 }

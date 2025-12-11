@@ -55,6 +55,24 @@ router.patch(
     UserController.changeUserRole
 );
 
+router.post(
+    "/host/become-host",
+    auth(UserRole.USER),
+    UserController.requestHostRole
+);
+
+router.get(
+    "/admin/host-requests",
+    auth(UserRole.ADMIN),
+    UserController.getPendingHostRequests 
+);
+
+router.patch(
+    "/admin/host-request/:id",
+    auth(UserRole.ADMIN),
+    UserController.updateHostRequestStatus 
+);
+
 router.delete(
     "/:id",
     auth(UserRole.ADMIN),

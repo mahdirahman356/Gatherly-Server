@@ -20,4 +20,14 @@ model User {
   paymentsReceived Payment[] @relation("HostPayments")
 
   savedEvents SavedEvent[]
+
+  hostRequests HostRequest[]
+}
+
+model HostRequest {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  status    HostRequestStatus   @default(PENDING) 
+  createdAt DateTime @default(now())
 }
