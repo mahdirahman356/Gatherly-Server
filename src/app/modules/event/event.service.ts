@@ -528,8 +528,8 @@ const joinEvent = async (user: IJWTPayload, req: Request) => {
             eventTitle: event.title,
             userId,
             eventId,
-            successUrl: `http://localhost:3000/dashboard/upcoming?payment=success&eventId=${event.id}`,
-            cancelUrl: `http://localhost:3000/event/${event.id}`,
+            successUrl: `https://gatherly-plum.vercel.app/dashboard/upcoming?payment=success&eventId=${event.id}`,
+            cancelUrl: `https://gatherly-plum.vercel.app/event/${event.id}`,
         });
 
         return {
