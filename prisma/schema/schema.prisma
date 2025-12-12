@@ -1,0 +1,17 @@
+// File: prisma/schema/schema.prisma
+
+// Import all your other schema files
+/// <reference path="enums.prisma" />
+/// <reference path="event.prisma" />
+/// <reference path="profile.prisma" />
+/// <reference path="user.prisma" />
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Any base models/settings can also go here
