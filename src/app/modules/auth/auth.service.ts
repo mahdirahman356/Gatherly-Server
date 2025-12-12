@@ -1,4 +1,3 @@
-import { UserStatus } from "@prisma/client"
 import bcrypt from "bcryptjs";
 import jwt, { Secret } from 'jsonwebtoken'
 import { prisma } from "../../lib/prisma";
