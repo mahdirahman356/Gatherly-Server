@@ -11,9 +11,9 @@ enum HostRequestStatus {
 }
 
 enum UserStatus {
-    ACTIVE
-    INACTIVE
-    BLOCKED
+  ACTIVE
+  INACTIVE
+  BLOCKED
 }
 
 enum EventStatus {
@@ -24,9 +24,9 @@ enum EventStatus {
 }
 
 enum PaymentStatus {
-  FREE
   PENDING
   PAID
   FAILED
   REFUNDED
+  FREE
 }

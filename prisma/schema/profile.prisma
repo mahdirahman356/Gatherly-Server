@@ -5,7 +5,6 @@ model Profile {
   bio       String?
   interests String[] @default([])
   location  String?
-
-  userId String @unique
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

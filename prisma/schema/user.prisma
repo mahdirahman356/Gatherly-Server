@@ -1,33 +1,26 @@
 model User {
-  id       String     @id @default(uuid())
-  email    String     @unique
-  password String
-  role     Role       @default(USER)
-  status   UserStatus @default(ACTIVE)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  profile Profile?
-  events  Event[]  @relation("HostEvents")
-
-  reviewsGiven Review[] @relation("UserGivenReviews")
-  reviews      Review[] @relation("HostReceivedReviews")
-
-  participants Participant[]
-
-  paymentsMade     Payment[] @relation("UserPayments")
-  paymentsReceived Payment[] @relation("HostPayments")
-
-  savedEvents SavedEvent[]
-
-  hostRequests HostRequest[]
+  id               String        @id @default(uuid())
+  email            String        @unique
+  password         String
+  role             Role          @default(USER)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  status           UserStatus    @default(ACTIVE)
+  events           Event[]       @relation("HostEvents")
+  hostRequests     HostRequest?
+  participants     Participant[]
+  paymentsReceived Payment[]     @relation("HostPayments")
+  paymentsMade     Payment[]     @relation("UserPayments")
+  profile          Profile?
+  reviews          Review[]      @relation("HostReceivedReviews")
+  reviewsGiven     Review[]      @relation("UserGivenReviews")
+  savedEvents      SavedEvent[]
 }
 
 model HostRequest {
-  id        String   @id @default(uuid())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id])
-  status    HostRequestStatus   @default(PENDING) 
-  createdAt DateTime @default(now())
+  id        String            @id @default(uuid())
+  userId    String            @unique
+  status    HostRequestStatus @default(PENDING)
+  createdAt DateTime          @default(now())
+  user      User              @relation(fields: [userId], references: [id])
 }

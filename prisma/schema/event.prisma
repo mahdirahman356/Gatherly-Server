@@ -1,43 +1,33 @@
 model Event {
-  id          String   @id @default(cuid())
-  title       String
-  type        String
-  description String
-  date        DateTime
-  location    String
-  image       String
-
-  minParticipants Int @default(1)
+  id              String        @id @default(cuid())
+  title           String
+  type            String
+  description     String
+  date            DateTime
+  location        String
+  image           String
+  minParticipants Int           @default(1)
   maxParticipants Int
-  joiningFee      Int @default(0)
-
-  status EventStatus @default(OPEN)
-
-  hostId String
-  host   User   @relation("HostEvents", fields: [hostId], references: [id])
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  reviews      Review[]
-  participants Participant[]
-
-  payments Payment[]
-
-  savedEvents SavedEvent[]
+  joiningFee      Int           @default(0)
+  status          EventStatus   @default(OPEN)
+  hostId          String
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  host            User          @relation("HostEvents", fields: [hostId], references: [id])
+  participants    Participant[]
+  payments        Payment[]
+  reviews         Review[]
+  savedEvents     SavedEvent[]
 }
 
 model Participant {
-  id String @id @default(cuid())
-
-  userId String
-  user   User   @relation(fields: [userId], references: [id])
-
-  eventId String
-  event   Event  @relation(fields: [eventId], references: [id])
-
+  id            String        @id @default(cuid())
+  userId        String
+  eventId       String
   paymentStatus PaymentStatus @default(FREE)
   joinedAt      DateTime      @default(now())
+  event         Event         @relation(fields: [eventId], references: [id])
+  user          User          @relation(fields: [userId], references: [id])
 
   @@unique([userId, eventId])
 }
@@ -47,48 +37,36 @@ model SavedEvent {
   userId    String
   eventId   String
   createdAt DateTime @default(now())
-
-  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, eventId])
 }
 
-
 model Payment {
-  id String @id @default(uuid())
-
+  id            String        @id @default(uuid())
   amount        Float
   transactionId String        @unique
-
   status        PaymentStatus @default(PENDING)
-
-  userId String
-  user   User   @relation("UserPayments", fields: [userId], references: [id])
-
-  hostId String
-  host   User   @relation("HostPayments", fields: [hostId], references: [id])
-
-  eventId String
-  event   Event  @relation(fields: [eventId], references: [id])
-
-  createdAt DateTime @default(now())
+  userId        String
+  hostId        String
+  eventId       String
+  createdAt     DateTime      @default(now())
+  event         Event         @relation(fields: [eventId], references: [id])
+  host          User          @relation("HostPayments", fields: [hostId], references: [id])
+  user          User          @relation("UserPayments", fields: [userId], references: [id])
 }
 
 model Review {
-  id      String  @id @default(uuid())
-  rating  Int
-  comment String?
-
-  userId String
-  user   User   @relation("UserGivenReviews", fields: [userId], references: [id])
-
-  hostId String
-  host   User   @relation("HostReceivedReviews", fields: [hostId], references: [id])
-
-  eventId String
-  event   Event  @relation(fields: [eventId], references: [id])
-
+  id        String   @id @default(uuid())
+  rating    Int
+  comment   String?
+  userId    String
+  hostId    String
+  eventId   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  event     Event    @relation(fields: [eventId], references: [id])
+  host      User     @relation("HostReceivedReviews", fields: [hostId], references: [id])
+  user      User     @relation("UserGivenReviews", fields: [userId], references: [id])
 }
