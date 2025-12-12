@@ -15,12 +15,7 @@ app.post(
     PaymentController.handleStripeWebhookEvent
 );
 app.use(cors({
-    origin: 'http://localhost:3000',
-    credentials: true
-}));
-
-app.use(cors({
-    origin: 'http://localhost:3000',
+    origin: ['http://localhost:3000', 'https://gatherly-plum.vercel.app'],
     credentials: true
 }));
 
